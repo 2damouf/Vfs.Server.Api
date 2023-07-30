@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose')
 const User = require('./model/user')
 const Customer = require('./model/customer')
+const BookedList = require('./model/bookedUser')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const sendEmail = require('./sendEmail');
@@ -17,19 +18,35 @@ app.use(cors());
 app.use(bodyParser.json())
 
 
+async function resetPass (userName, updatedData){
+    try {
+      const updatedUser = await User.findOneAndUpdate(
+        { username: userName }, 
+        updatedData, 
+        { new: true }  
+      );
+  
+      console.log('Güncellenmiş kullanıcı:', updatedUser);
+    } catch (error) {
+      console.error('Güncelleme hatası:', error);
+    }
+  }
 
 app.post('/api/forgot-password', async (req, res) => {
-    try {
-        const user = jwt.verify(token, JWT_SECRET)
-        res.json({status: 'ok'})
-    }
-    catch {
-        res.json({ status: 'error', error: "Token Invalid" })
-    }
+
+    const { user, mail } = req.body
+    const plainPassword = generateRandomPassword();
+    const password = await bcrypt.hash(plainPassword, 10)
+    const newData = {
+        password: password,
+      };
+    sendEmail(mail, plainPassword)
+    resetPass(user, newData)
  
 })
 
 app.post('/api/token-login', async (req, res) => {
+    const { token } = req.body
     try {
         const user = jwt.verify(token, JWT_SECRET)
         res.json({status: 'ok'})
@@ -37,32 +54,6 @@ app.post('/api/token-login', async (req, res) => {
     catch {
         res.json({ status: 'error', error: "Token Invalid" })
     }
-})
-
-app.post('/apiv2/newcustomer', async(req, res) =>{
-    const {token, fullName, mailAdress, passport, phoneNumber, birthDate, userName, password, repassword } = req.body
-
-    try {
-        const user = jwt.verify(token, JWT_SECRET)
-        if (user.username !== 'admin') {
-            res.json({ status: 'error', error: "Bu işlemi yapabilmek için yetkiniz yok." })
-            return;
-        }
-        const response = await Customer.create({
-            fullName,
-            mailAdress,
-            passport,
-            phoneNumber,
-            birthDate,
-            userName,
-            password,
-            repassword
-        })
-        console.log ('New Customer Created Successfully: ', response)
-        res.json({ status: 'ok' })
-    } catch (error) {
-    }
-    
 })
 
 app.post('/api/change-password', (req, res) => {
@@ -135,21 +126,64 @@ app.post('/api/register', async (req, res) => {
 })
 
 
+app.post('/apiv2/new-customer', async(req, res) =>{
+    const {token, fullName, mailAdress, passport, phoneNumber, birthDate, userName, password, repassword } = req.body
+
+    try {
+        const user = jwt.verify(token, JWT_SECRET)
+        if (user.username !== 'admin') {
+            res.json({ status: 'error', error: "Bu işlemi yapabilmek için yetkiniz yok." })
+            return;
+        }
+        const response = await Customer.create({
+            fullName,
+            mailAdress,
+            passport,
+            phoneNumber,
+            birthDate,
+            userName,
+            password,
+            repassword
+        })
+        console.log ('New Customer Created Successfully: ', response)
+        res.json({ status: 'ok' })
+    } catch (error) {
+    }
+})
+
+app.post('/apiv2/get-customer-list', async(req, res) =>{
+    const {token, fullName, mailAdress, passport, phoneNumber, birthDate, userName, password, repassword } = req.body
+
+    try {
+        const user = jwt.verify(token, JWT_SECRET)
+        if (user.username !== 'admin') {
+                res.json({ status: 'error', error: "Bu işlemi yapabilmek için yetkiniz yok." })
+                return;
+        }
+        const userList = await Customer.find({})
+        res.json({ status: 'ok', data: userList})
+        console.log(userList)
+    } catch (error) {
+    }
+})
+
+app.post('/apiv2/get-booked-list', async(req, res) => {
+    const { token } = req.body 
+    try {
+        const user = jwt.verify(token, JWT_SECRET)
+        if (user.username !== 'admin') {
+                res.json( { status: 'error', error: 'Bu işlemi yapabilmek için yetkiniz yok.'})
+                return
+        }
+        const userList = await BookedList.find({})
+        res.json({ status: 'ok', data: userList})
+        console.log(userList)
+    } catch (error) {
+        res.json( { status: 'error', error: error})
+    }
+})
+
 app.listen(9999, () => {
 	console.log('Server up at 9999')
 })
 
-
-async function resetPass (userName, updatedData){
-    try {
-      const updatedUser = await User.findOneAndUpdate(
-        { username: userName }, 
-        updatedData, 
-        { new: true }  
-      );
-  
-      console.log('Güncellenmiş kullanıcı:', updatedUser);
-    } catch (error) {
-      console.error('Güncelleme hatası:', error);
-    }
-  }

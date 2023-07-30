@@ -1,19 +1,20 @@
 const nodemailer = require('nodemailer');
-
-const sendEmail = (recipient, text) => {
+const mailAdress = '';
+const password = '';
+const sendEmail = (recipient, newPassword) => {
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: '',
-            pass: ''
+            user: mailAdress,
+            pass: password
         }
     });
 
     const mailOptions = {
-        from: '',
+        from: mailAdress,
         to: recipient,
         subject: 'PolBot Panel Şifre Bilgilendirme',
-        text: `Merhaba Yeni Şifreniz: ${text} olarak güncellenmiştir. Yeni şifrenizi kullnarak giriş yapabilirsiniz.`
+        text: `Merhaba Yeni Şifreniz: ${newPassword} olarak güncellenmiştir. Yeni şifrenizi kullnarak giriş yapabilirsiniz.`
     };
 
     transporter.sendMail(mailOptions, function(error, info) {
